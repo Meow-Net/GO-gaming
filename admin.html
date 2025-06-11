@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Arcade Admin Panel</title>
+  <style>
+    body {
+      background: #0d0d0d;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 2rem;
+    }
+    h1 {
+      color: #ff004f;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    input {
+      width: 250px;
+    }
+    button {
+      background: #ff004f;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #ff3366;
+    }
+    #userList {
+      margin-top: 2rem;
+    }
+    .user-item {
+      background: #1a1a1a;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 5px;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <h1>🎮 Arcade Admin Panel</h1>
+  <button onclick="logout()">Logout</button>
+
+  <h3>Add or Update User</h3>
+  <input id="uid" placeholder="Card UID (e.g. 4500093989F5)" /><br>
+  <input id="name" placeholder="Name" /><br>
+  <input id="credits" placeholder="Credits (e.g. 50)" type="number"/><br>
+  <button onclick="addOrUpdateUser()">💾 Save</button>
+  <button onclick="deleteUser()">🗑️ Delete</button>
+
+  <div id="userList">
+    <h3>📄 All Users:</h3>
+    <div id="users"></div>
+  </div>
+
+  <script>
+    function logout() {
+      firebase.auth().signOut().then(() => {
+        window.location.href = "index.html";
+      });
+    }
+
+    const db = firebase.database();
+
+    function addOrUpdateUser() {
+      const uid = document.getElementById('uid').value.trim().toUpperCase();
+      const name = document.getElementById('name').value.trim();
+      const credits = parseInt(document.getElementById('credits').value);
+
+      if (!uid || !name || isNaN(credits)) {
+        alert("Please enter valid UID, name, and credits.");
+        return;
+      }
+
+      db.ref("users/" + uid).set({ name, credits })
+        .then(() => {
+          alert("✅ User saved!");
+          loadUsers();
+        });
+    }
+
+    function deleteUser() {
+      const uid = document.getElementById('uid').value.trim().toUpperCase();
+      if (!uid) return alert("Enter a UID to delete.");
+      if (!confirm("Are you sure you want to delete this card?")) return;
+
+      db.ref("users/" + uid).remove()
+        .then(() => {
+          alert("🗑️ Deleted!");
+          loadUsers();
+        });
+    }
+
+    function loadUsers() {
+      const list = document.getElementById('users');
+      list.innerHTML = "🔄 Loading...";
+
+      db.ref("users").once("value", snapshot => {
+        const users = snapshot.val();
+        if (!users) {
+          list.innerHTML = "❌ No users found.";
+          return;
+        }
+
+        list.innerHTML = "";
+        Object.entries(users).forEach(([uid, data]) => {
+          list.innerHTML += `
+            <div class="user-item">
+              <strong>${data.name}</strong><br>
+              UID: ${uid}<br>
+              Credits: ${data.credits}
+            </div>`;
+        });
+      });
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
