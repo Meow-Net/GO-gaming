@@ -27,4 +27,71 @@
       margin-top: 2rem;
       border-radius: 12px;
       display: inline-block;
-      min-width: 300
+      min-width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Tap Your Arcade Card</h1>
+  <p>Tap your card on the back of your phone to check your balance</p>
+  <button onclick="scanCard()">📲 Tap Card</button>
+
+  <div id="result" class="card" style="display:none;">
+    <h2 id="name"></h2>
+    <p><strong>UID:</strong> <span id="uid"></span></p>
+    <p><strong>Credits:</strong> <span id="credits"></span></p>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDG3-vYzlsJG0VpiuL_23G2oVP2KrhZJK8",
+      authDomain: "nfc21-2d640.firebaseapp.com",
+      databaseURL: "https://nfc21-2d640-default-rtdb.firebaseio.com",
+      projectId: "nfc21-2d640",
+      storageBucket: "nfc21-2d640.appspot.com",
+      messagingSenderId: "745081189931",
+      appId: "1:745081189931:web:68e8e7304f427cf8049c6e",
+      measurementId: "G-1XE253J08V"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function scanCard() {
+      if (!("NDEFReader" in window)) {
+        alert("❌ Web NFC is not supported on this device.\nUse Chrome on Android.");
+        return;
+      }
+
+      try {
+        const ndef = new NDEFReader();
+        await ndef.scan();
+        alert("📡 Hold your card near the phone...");
+        ndef.onreading = event => {
+          const uid = event.serialNumber.toUpperCase();
+          showUser(uid);
+        };
+      } catch (err) {
+        alert("Error reading card: " + err);
+      }
+    }
+
+    function showUser(uid) {
+      db.ref("users/" + uid).once("value", snap => {
+        const user = snap.val();
+        if (!user) {
+          alert("⚠️ Card not registered!");
+          return;
+        }
+
+        document.getElementById("result").style.display = "block";
+        document.getElementById("name").textContent = user.name;
+        document.getElementById("uid").textContent = uid;
+        document.getElementById("credits").textContent = user.credits;
+      });
+    }
+  </script>
+</body>
+</html>
